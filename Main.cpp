@@ -48,7 +48,7 @@ int main() {
     for (int k = 0; k < 100; k++) {
         data[k] = std::rand();
     }
-    shaker_sort(data, 100); 
+    stooge_sort(data, 0, 99); 
 
     for (int k = 0; k < 100; k++)
         std::cout << data[k] << std::endl; 
@@ -57,14 +57,18 @@ int main() {
 
 
 void stooge_sort(int data[], int lo_idx, int hi_idx) {
-    int offset = ((hi_idx - lo_idx + 1) * 2) / 3;
-
-    if (data[lo_idx] > data[hi_idx]) {
-        std::swap(data[lo_idx], data[hi_idx]);
+    
+    if (lo_idx < hi_idx) {
+        if (data[lo_idx] > data[hi_idx]) {
+            std::swap(data[lo_idx], data[hi_idx]);
+        }
+        int offset = ((hi_idx - lo_idx) * 2) / 3;
+        if (offset > 0) {
+            stooge_sort(data, lo_idx, (lo_idx + offset));
+            stooge_sort(data, hi_idx - offset, hi_idx);
+            stooge_sort(data, lo_idx, (lo_idx + offset));
+        }
     }
-    stooge_sort(data, lo_idx, (lo_idx + offset));
-    stooge_sort(data, hi_idx - offset, hi_idx); 
-    stooge_sort(data, lo_idx, (lo_idx + offset));
 }
 
 void shaker_sort(int data[], int size) {
