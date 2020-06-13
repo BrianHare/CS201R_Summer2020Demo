@@ -1,5 +1,7 @@
 #include <iostream> 
 
+void quick_sort(int data[], int lo_idx, int hi_idx);
+
 
 void selection_sort(int data[], int size); 
 // PRE: Array contains at least size elements. 
@@ -48,7 +50,7 @@ int main() {
     for (int k = 0; k < 100; k++) {
         data[k] = std::rand();
     }
-    stooge_sort(data, 0, 99); 
+    quick_sort(data, 0, 99); 
 
     for (int k = 0; k < 100; k++)
         std::cout << data[k] << std::endl; 
@@ -123,5 +125,75 @@ void comb_sort(int data[], int size) {
             }
         } while (flips); 
         gap = (gap * 5) / 9;
+    }
+}
+
+void quick_sort(int data[], int lo_idx, int hi_idx) {
+
+    if (hi_idx - lo_idx < 30) {   // shell sort for small portion 
+        int gap = ((hi_idx - lo_idx + 1) * 2) / 3;
+        while (gap > 0) {
+            int lo_bound = lo_idx + gap;
+            for (int start = lo_bound; start <= hi_idx; start++) {
+                int current = start;
+                while ((current >= lo_bound) && (data[current] < data[current - gap])) {
+                    std::swap(data[current], data[current - gap]);
+                    current -= gap;
+                }
+            }
+            gap = (gap * 5) / 9;
+        }
+    }
+    else {   // larger portion - 2-pivot partitioning 
+        int small, large; 
+        int indices[5];
+
+        indices[0] = lo_idx; 
+        indices[1] = hi_idx;
+        indices[2] = (indices[0] + indices[1]) / 2;  // midpoint
+        indices[3] = (indices[0] + indices[2]) / 2;  // (lo, mid) midpoint
+        indices[4] = (indices[1] + indices[2]) / 2;  // (mid, hi) midpoint
+
+        // brute-force sort into order (only 5 items, algorithm doesn't matter) 
+        // so they're arranged by value of data at each index 
+
+        for (int range = 4; range > 0; range--) {
+            for (int j = 0; j < range; j++) {
+                if (data[indices[j]] > data[indices[j + 1]]) {
+                    std::swap(indices[j], indices[j + 1]);
+                }
+            }
+        }
+
+        std::swap(data[indices[1]], data[lo_idx]);
+        std::swap(data[indices[3]], data[hi_idx]); 
+        small = lo_idx;  // leftmost small item 
+        large = hi_idx;  // rightmost large item 
+        
+        for (int current = small + 1; current < large; current++) {
+            if (data[current] < data[lo_idx]) {  // less than piv1 
+                std::swap(data[current], data[++small]);
+            }
+            else if (data[current] > data[hi_idx]) {  // greater than piv2 
+                std::swap(data[current], data[--large]);
+                // Note: With small, we shifted over an item we've already looked at. But in this case, 
+                // this item may be very small & need to be on the left; or it may need to be 
+                // shifted right back into the larger portion. In short, we need to make it the next 
+                // item examined. 
+                current--;  // so back up one slot. 
+            }
+        }
+    
+
+        std::swap(data[lo_idx], data[small]); // move piv1 to rightmost position in small portion
+        std::swap(data[hi_idx], data[large]); // move piv2 to leftmost position in large portion 
+        quick_sort(data, lo_idx, small - 1);
+        quick_sort(data, large + 1, hi_idx); 
+
+        // If our pivot items are the same, everything between them is duplicate & doesn't 
+        // need to be touched. Otherwise, sort middle portion 
+        if (data[large] != data[small]) {
+            quick_sort(data, small + 1, large - 1); 
+        }
     }
 }
