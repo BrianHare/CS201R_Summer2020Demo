@@ -1,7 +1,8 @@
 #include <iostream> 
 
 void quick_sort(int data[], int lo_idx, int hi_idx);
-
+// N.B. Testing indicates a logic bug somewhere (a large, but not the highest, value at 
+// the right end). Don't use until I've tracked it down. 
 
 void selection_sort(int data[], int size); 
 // PRE: Array contains at least size elements. 
@@ -19,8 +20,7 @@ void shaker_sort(int data[], int size);
 //   beginning. This runs about twice as fast as an ordinary bubble sort but is still N^2. 
 
 void stooge_sort(int data[], int lo_idx, int hi_idx); 
-// PRE: Array contains data; lo_idx and hi_idx are lowest and highest indices
-//    of arrays containing data 
+// PRE: Array contains data; lo_idx and hi_idx are lowest and highest indices of array
 // POST: Data is sorted using the stooge sort algorithm. 
 // RETURNS: None. 
 // COMMENTS: Stooge sort is horribly inefficient and should not be used 
@@ -31,36 +31,37 @@ void stooge_sort(int data[], int lo_idx, int hi_idx);
 //              Recursively sort the first 2/3 of the array 
 //              Recursively sort the last 2/3 of the array 
 //              Recursively sort the first 2/3 of the array
-//    Yes, it works--visualizations are available online--but its running time is worse than N^2. 
+//    Yes, it works--visualizations are available online--but its running time is worse than N^2.
+//    It was developed as a homework problem for an algorithms textbook. 
 
 void comb_sort(int data[], int size);
 // PRE: Array contains data in at least the first size locations. 
-// POST: Data is sorted 
+// POST: Data is sorted in the first size locations
 // RETURNS: None. 
 // COMMENTS: A fairly simple algorithm that runs in under N^2. Defines a gap, initially about 
 //    half the array, compares w/ item that far away, swap if necessary, repeat until a pass 
 //    with no swaps, reduce gap size, repeat. Collapses to bubble sort but initial swaps have 
 //    moved items close to where they belong. 
 
+int data[4000];
 
 int main() {
-    int data[100]; 
     std::cout << "Hello world!" << std::endl;
-    
-    for (int k = 0; k < 100; k++) {
+
+    for (int k = 0; k < 4000; k++) {
         data[k] = std::rand();
     }
-    quick_sort(data, 0, 99); 
+    quick_sort(data, 0, 3999);
 
-    for (int k = 0; k < 100; k++)
-        std::cout << data[k] << std::endl; 
+    for (int k = 0; k < 4000; k++)
+        std::cout << data[k] << std::endl;
     return EXIT_SUCCESS;
 }
 
 
 void stooge_sort(int data[], int lo_idx, int hi_idx) {
     
-    if (lo_idx < hi_idx) {
+    if (lo_idx < hi_idx) { // at least 2 items
         if (data[lo_idx] > data[hi_idx]) {
             std::swap(data[lo_idx], data[hi_idx]);
         }
@@ -159,7 +160,7 @@ void quick_sort(int data[], int lo_idx, int hi_idx) {
 
         for (int range = 4; range > 0; range--) {
             for (int j = 0; j < range; j++) {
-                if (data[indices[j]] > data[indices[j + 1]]) {
+                if (data[indices[j+1]] < data[indices[j]]) {
                     std::swap(indices[j], indices[j + 1]);
                 }
             }
@@ -174,7 +175,7 @@ void quick_sort(int data[], int lo_idx, int hi_idx) {
             if (data[current] < data[lo_idx]) {  // less than piv1 
                 std::swap(data[current], data[++small]);
             }
-            else if (data[current] > data[hi_idx]) {  // greater than piv2 
+            else if (data[hi_idx] < data[current]) {  // greater than piv2 
                 std::swap(data[current], data[--large]);
                 // Note: With small, we shifted over an item we've already looked at. But in this case, 
                 // this item may be very small & need to be on the left; or it may need to be 
@@ -184,15 +185,14 @@ void quick_sort(int data[], int lo_idx, int hi_idx) {
             }
         }
     
-
         std::swap(data[lo_idx], data[small]); // move piv1 to rightmost position in small portion
         std::swap(data[hi_idx], data[large]); // move piv2 to leftmost position in large portion 
-        quick_sort(data, lo_idx, small - 1);
-        quick_sort(data, large + 1, hi_idx); 
+        quick_sort(data, lo_idx, small - 1);  // sort left partition 
+        quick_sort(data, large + 1, hi_idx);  // sort right partition 
 
         // If our pivot items are the same, everything between them is duplicate & doesn't 
         // need to be touched. Otherwise, sort middle portion 
-        if (data[large] != data[small]) {
+        if (data[small] < data[large]) {
             quick_sort(data, small + 1, large - 1); 
         }
     }
