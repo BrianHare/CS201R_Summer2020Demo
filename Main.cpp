@@ -1,11 +1,17 @@
 #include <iostream> 
+#include <ctime>
 
 void insertion_sort(int data[], int size);
 
 
-void quick_sort(int data[], int lo_idx, int hi_idx);
+void q_sort(int data[], int lo_idx, int hi_idx);
 // N.B. Testing indicates a logic bug somewhere (a large, but not the highest, value at 
 // the right end). Don't use until I've tracked it down. 
+
+void quick_sort(int data[], int size); 
+// this is what the user calls. 'Mostly' sorts array via partitioning, then 
+// insertion-sorts the k-sorted array that's left (k = 5). 
+
 
 void selection_sort(int data[], int size); 
 // PRE: Array contains at least size elements. 
@@ -46,29 +52,36 @@ void comb_sort(int data[], int size);
 //    with no swaps, reduce gap size, repeat. Collapses to bubble sort but initial swaps have 
 //    moved items close to where they belong. 
 
-const int DATASIZE = 4000;
-int data[DATASIZE];
+const int DATASIZE = 10;
 
 int main() {
+    int* data = new int[DATASIZE]; 
     std::cout << "Hello world!" << std::endl;
 
-    srand(10);
+    srand(time(NULL));
     for (int k = 0; k < DATASIZE; k++) {
-        data[k] = std::rand();
+        data[k] = 20 - k;
+    //    data[k] = std::rand();
     }
-   quick_sort(data, 0, DATASIZE-1);
+    
+   selection_sort(data, DATASIZE);
 
     std::cout << "Checking...." << std::endl; 
     for (int k = 1; k < DATASIZE; k++) {
         if (data[k] < data[k - 1]) {
-            std::cerr << "Error in sort at index:" << k << '\n' 
+            std::cerr << "Error in sort at index: " << k << '\n' 
                 << "Data[" << k << "] = " << data[k] << "; Data[" << k-1 
                 << "] = " << data[k-1] << std::endl;
         }
     }
-
     //for (int k = 0; k < DATASIZE; k++)
     //    std::cout << data[k] << std::endl;
+
+    if (data != nullptr) {
+        delete[] data;
+        data = nullptr;
+    }
+
 
     return EXIT_SUCCESS;
 }
@@ -77,7 +90,7 @@ int main() {
 void stooge_sort(int data[], int lo_idx, int hi_idx) {
     
     if (lo_idx < hi_idx) { // at least 2 items
-        if (data[lo_idx] > data[hi_idx]) {
+        if (data[lo_idx] > data[hi_idx]) { // first and last items out of order relative to each other 
             std::swap(data[lo_idx], data[hi_idx]);
         }
         int offset = ((hi_idx - lo_idx) * 2) / 3;
@@ -108,17 +121,63 @@ void shaker_sort(int data[], int size) {
 }
 
 void selection_sort(int data[], int size) {
-    int first = 0, last = size - 1, current, lo_idx; 
+    int first = 0, last = size - 1, current, lo_idx, hi_idx;
+    int temp1; 
 
-    while (first < last) {
-        lo_idx = first;
-        for (current = first; current <= last; current++) {
-            if (data[current] < data[lo_idx]) {
-                lo_idx = current;
+    while (last - first > 1) {  // more than 2 items
+        lo_idx = hi_idx = last;
+        current = first;
+        while (current < last) {
+            if (data[current] < data[current + 1]) {
+                if (data[current] < data[lo_idx]) {
+                    lo_idx = current;
+                }
+                if (data[hi_idx] < data[current+1]) {
+                    hi_idx = current+1;
+                }
             }
+            else {
+                if (data[current] > data[hi_idx]) {
+                    hi_idx = current;
+                }
+                if (data[current+1] < data[lo_idx]) {
+                    lo_idx = current+1;
+                }
+            }
+            current += 2; 
         }
-        std::swap(data[lo_idx], data[first]);
+        // I had a bug that took a stupidly-long amount of time to track down. 
+        // We're moving things around using std::swap(). 
+        // For the special case where lo_idx == last or hi_idx == first, carrying 
+        // out one of the swaps interferes with the other, resulting in incorrect
+        // ordering. This avoids that... 
+        if (lo_idx != last && hi_idx != first) { // typical case 
+            std::swap(data[first], data[lo_idx]); 
+            std::swap(data[last], data[hi_idx]);
+        }
+        else if (lo_idx == last && hi_idx == first) { // they're both pointing at each others' data
+            std::swap(data[first], data[last]); 
+        }
+        else if (lo_idx == last) {  // lo_idx = last, hi_idx not at first
+            temp1 = data[last];  // save smallest item 
+            data[last] = data[hi_idx];  // put biggest item at end 
+            data[hi_idx] = data[first]; // move item at front down to middle
+            data[first] = temp1;  // put smallest item at beginning 
+        }
+        else {  // must be: hi_idx = first, lo_idx in middle somewhere 
+            temp1 = data[first]; // save largest item 
+            data[first] = data[lo_idx]; // put smallest at front 
+            data[lo_idx] = data[last]; // move item from back to middle
+            data[last] = temp1;  // put largest item at end. 
+        }
         first++;
+        last--;
+    }
+    if (first <= last) {  // 1 or exactly 2 items left 
+        // if 2 & they're out of order, swap them; if only 1, test fails, do nothing 
+        if (data[last] < data[first]) {
+            std::swap(data[first], data[last]);
+        }
     }
 }
 
@@ -139,27 +198,47 @@ void comb_sort(int data[], int size) {
     }
 }
 
-void quick_sort(int data[], int lo_idx, int hi_idx) {
+void quick_sort(int data[], int size) {
+    int tmp, current;
 
-    if (hi_idx - lo_idx < 30) {   // shell sort for small portion 
-        int gap = ((hi_idx - lo_idx) * 2) / 3;
-        while (gap > 0) {
-            int lo_bound = lo_idx + gap;
-            for (int start = lo_bound; start <= hi_idx; start++) {
-                int current = start;
-                while ((current >= lo_bound) && (data[current] < data[current - gap])) {
-                    std::swap(data[current], data[current - gap]);
-                    current -= gap;
-                }
-            }
-            gap = (gap * 5) / 9;
+    // Use 2-pivot partitioning until partition size is 6 or less. 
+    // Then clean up with insertion sort (for k-sorted arrays, insertion
+    // sort is linear time).
+    q_sort(data, 0, size - 1);
+    for (int start = 1; start < size; start++) {
+        current = start;
+        tmp = data[start];
+        while (current > 0 && tmp < data[current - 1]) {
+            data[current] = data[current - 1];
+            current--;
+        }
+        if (current != start) { // we have in fact moved some things around 
+            data[current] = tmp; // so complete the exchange 
         }
     }
-    else {   // larger portion - 2-pivot partitioning 
-        int small, large, current; 
-        int indices[5];
+}
 
-        indices[0] = lo_idx; 
+
+void q_sort(int data[], int lo_idx, int hi_idx) {
+    /* code note: This sprawling monstrosity is crying out to be refactored. 
+     For a start, break out the identification of the pivots into its own function;
+     then move the partitioning into a function. 
+
+     True Confessions: There's an off-by-one error lurking somewhere in the 
+     partitioning code or the recursive calls; I keep finding pairs of swapped 
+     items scattered throughout the array. BUT since they're never more than 1 
+     position away from where they belong anyway, and we're using insertion sort 
+     to clean up small partitions, they can be swept up into that. Yes, it's 
+     cheesy, and probably worth tracking down the error. But the payoff is likely to be 
+     small, given that 2-pivot Qsort with alternative sorts on small partitions is 
+     already one of the fastest algorithms known (of the n log n i.e. comparison-based 
+     methods). 
+    */
+    int small, large, current;
+    int indices[5];
+
+    if (hi_idx - lo_idx >= 5) {
+        indices[0] = lo_idx;
         indices[1] = hi_idx;
         indices[2] = (lo_idx + hi_idx) / 2;      // midpoint
         indices[3] = (lo_idx + indices[2]) / 2;  // (lo, mid) midpoint
@@ -168,44 +247,47 @@ void quick_sort(int data[], int lo_idx, int hi_idx) {
         // brute-force sort into order (only 5 items, algorithm doesn't matter) 
         // so they're arranged by value of data at each index 
 
-        for (int round = 0; round < 4; round++) {
+        for (int round = 0; round < 5; round++) {
             for (int j = 0; j < 4; j++) {
                 if (data[indices[j]] > data[indices[j + 1]]) {
                     std::swap(indices[j], indices[j + 1]);
                 }
             }
         }
-                
-  //      std::swap(data[indices[3]], data[hi_idx]);
+        // move pivots to endpoints 
+        std::swap(data[indices[3]], data[hi_idx]);
         std::swap(data[indices[1]], data[lo_idx]);
-   
+
         small = lo_idx;  // leftmost small item 
         large = hi_idx;  // rightmost large item 
-        
+
         current = small;
-        while (current <= large) {
+        while (current <= hi_idx) {
             if (data[current] < data[lo_idx]) {
-                std::swap(data[current], data[++small]);
+                small++;
+                std::swap(data[current], data[small]);
             }
-            //else if (data[hi_idx] < data[current]) {
-            //    std::swap(data[current], data[--large]);
-            //    // this item is unknown, may be small, may need to be swapped back to large 
-            //    // so offset the increase in current that's about to happen 
-            //    current--;
-            //}
             current++;
         }
 
         std::swap(data[lo_idx], data[small]); // move piv1 to rightmost position in small portion
-        //std::swap(data[hi_idx], data[large]); // move piv2 to leftmost position in large portion 
-        quick_sort(data, lo_idx, small);  // sort left partition 
-        quick_sort(data, small+1, hi_idx);  // sort right partition 
 
-        //// If our pivot items are the same, everything between them is duplicate & doesn't 
-        //// need to be touched. Otherwise, sort middle portion 
-        //if (data[small] < data[large]) {
-        //    quick_sort(data, small, large); 
-        //}
+        // from lo_idx to small is now the smaller items. Now do same thing for large items. 
+        current = hi_idx;
+        while (current > small) {
+            if (data[hi_idx] < data[current]) { // this item is greater than pivot
+                large--;
+                std::swap(data[current], data[large]);
+            }
+            current--;
+        }
+        q_sort(data, lo_idx, small - 1);  // sort left partition 
+        q_sort(data, large + 1, hi_idx);  // sort right partition 
+        // if data[large] and data[small] are the same, then everything between them is identical
+        // and doesn't need to be sorted. Otherwise... 
+        if (data[large] != data[small]) {
+            q_sort(data, small + 1, large - 1); // sort middle portion
+        }
     }
 }
 
