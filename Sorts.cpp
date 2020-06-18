@@ -155,22 +155,23 @@ void selection_sort(int data[], int size) {
         // For the special case where lo_idx == last or hi_idx == first, i.e. the
         // smallest item is in the last array slot, or largest item in the first, carrying
         // out one of the swaps interferes with the other, resulting in incorrect
-        // ordering. This avoids that. It may be possible to combine some of these cases; 
-        // I haven't done a strict analysis. But this works. 
+        // ordering. This avoids that. 
         if (lo_idx != last && hi_idx != first) { // typical case
             std::swap(data[first], data[lo_idx]);
             std::swap(data[last], data[hi_idx]);
         }
-        else if (lo_idx == last && hi_idx == first) { // they're both pointing at each others' data
-            std::swap(data[first], data[last]); // so swap them 
+        else if (lo_idx == last) {
+            if (hi_idx == first) {  // they're both pointing at each others' data
+                std::swap(data[first], data[last]); // so swap them 
+            }
+            else {    // lo_idx = last, hi_idx not at first
+                temp1 = data[last];  // save smallest item
+                data[last] = data[hi_idx];  // put biggest item at end
+                data[hi_idx] = data[first]; // move item at front down to middle
+                data[first] = temp1;  // put smallest item at beginning
+            }
         }
-        else if (lo_idx == last) {  // lo_idx = last, hi_idx not at first
-            temp1 = data[last];  // save smallest item
-            data[last] = data[hi_idx];  // put biggest item at end
-            data[hi_idx] = data[first]; // move item at front down to middle
-            data[first] = temp1;  // put smallest item at beginning
-        }
-        else {  // must be: hi_idx = first, lo_idx in middle somewhere
+        else {  // must be: lo_idx in middle somewhere, hi_idx = first
             temp1 = data[first]; // save largest item
             data[first] = data[lo_idx]; // put smallest at front
             data[lo_idx] = data[last]; // move item from back to middle
