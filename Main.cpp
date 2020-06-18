@@ -1,9 +1,7 @@
 #include <iostream> 
 #include <ctime>
 
-
-
-const int DATASIZE = 100000;
+const int DATASIZE = 10000;
 
 int main() {
     bool oops = false; 
@@ -16,7 +14,7 @@ int main() {
     }
     
     // call to sort method goes here 
-
+    merge_sort(data, DATASIZE);
 
     for (int k = 1; k < DATASIZE; k++) {
         if (data[k] < data[k - 1]) {

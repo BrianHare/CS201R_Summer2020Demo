@@ -1,10 +1,21 @@
 /*
-For all your sorting needs... Various algorithms, from simple to complex.
+For all your sorting needs... Various algorithms, from simple to complex. Function bodies 
+each accompanied by introductory discussion. 
 
 */
 #include <iostream>  // for swap, of all things... 
 
 //===================================== function headers ============================
+
+void shell_sort(int data[], int size); 
+/* 
+PRE: Array contains data in first size elements 
+POST: Data is sorted. 
+RETURNS: None. 
+COMMENTS: Shell's method. Performance is good, not sensitive to data ordering. Good 
+  general-purpose sort. 
+*/
+
 
 void insertion_sort(int data[], int size);
 // PRE: Array contains at least size elements. 
@@ -61,6 +72,14 @@ void comb_sort(int data[], int size);
 //    with no swaps, reduce gap size, repeat. Collapses to bubble sort but initial swaps have 
 //    moved items close to where they belong. 
 
+
+void merge_sort(int data[], int size); 
+void m_sort(int data[], int aux[], int first_idx, int last_idx); 
+/*
+On the one hand, N lg N performance with a relatively low constant under all conditions. 
+On the other, enough extra memory to hold another copy of the data. m_sort is the function
+doing most of the work. 
+*/
 //===================================== function bodies ============================
 
 
@@ -141,7 +160,7 @@ void selection_sort(int data[], int size) {
                 }
             }
             else {
-                if (data[current] > data[hi_idx]) {
+                if (data[hi_idx] < data[current]) {
                     hi_idx = current;
                 }
                 if (data[current + 1] < data[lo_idx]) {
@@ -198,9 +217,9 @@ pass for each gap > 1, and only make repeated passes for gap == 1). This continu
 the gap is 1 and it's a regular bubble sort, but by then every item is already close to 
 where it belongs. Performance is substantially better than N^2 (but slower than Shell 
 or any N log N method). This gap size & 'shrink factor' is approximately optimum based on 
-empirical testing.  Time Complexity: O(n log n) for the best case. O(n^2/2^p) (p is 
-a number of increment) for average case and O(n^2) for the worst case.  Space 
-Complexity: O(1)
+empirical testing.  Time Complexity: O(n log n) for the best case (1 pass at each gap, no
+swaps). O(n^2/2^p) (p is a number of increment) for average case and O(n^2) for the worst 
+case.  Space complexity: O(1).
 */
 void comb_sort(int data[], int size) {
     bool flips;
@@ -220,7 +239,8 @@ void comb_sort(int data[], int size) {
         // the one going through 11 is the only one that gets rid of all the turtles 
         // (small items near the 'big' end of the array) before the gap becomes 1. 
         // So speaks the oracle of Wikipedia; I haven't tracked down an original source for 
-        // that, it might be an urban legend. 
+        // that, it might be an urban legend. But the more we do with larger stepsizes, the 
+        // better. 
         if (gap == 9 || gap == 10) {
             gap = 11;
         }
@@ -236,7 +256,7 @@ time it collapses to 'regular' insertion sort, everything is already close to wh
 belongs, and the remaining time needed is linear. Unlike comb sort, Shell does not need to
 deliberately make passes where nothing changes, which are by definition not productive.
 R. Sedgwick, in his book 'Algorithms,' recommends Shell as the default method to use when
-coding your own sort--it's compact, pretty fast, and simple enough that it's easy to
+coding your own sort--it's compact, pretty fast, simple enough that it's easy to
 remember & test, not as 'brittle' regarding subtle errors or special cases as some, and not
 sensitive to the initial ordering of the data. Then, if testing determines that the sort
 is a bottleneck, you can go to the trouble of a more complex (but faster) method. (Hint:
@@ -394,3 +414,54 @@ void insertion_sort(int data[], int size) {
     }
 }
 
+void merge_sort(int data[], int size) {
+
+    int* auxiliary = new int[size]; 
+    
+    m_sort(data, auxiliary, 0, size - 1); 
+
+    delete[] auxiliary; 
+    auxiliary = nullptr; 
+
+}
+
+void m_sort(int data[], int aux[], int first_idx, int last_idx) {
+    int left, right, mid, a;
+    int p = (last_idx - first_idx + 1); // number of items in this partition
+
+    if (p > 5) {
+        mid = first_idx + (p / 2);
+        m_sort(data, aux, first_idx, mid);
+        m_sort(data, aux, mid + 1, last_idx);
+        left = first_idx;
+        right = mid + 1;
+        a = first_idx;
+        while (left <= mid && right <= last_idx) {
+            if (data[right] < data[left]) {
+                aux[a++] = data[right++];
+            }
+            else {
+                aux[a++] = data[left++];
+            }
+        }
+        while (left <= mid) {
+            aux[a++] = data[left++];
+        }
+        while (right <= last_idx) {
+            aux[a++] = data[right++];
+        }
+        for (a = first_idx; a <= last_idx; a++) {
+            data[a] = aux[a];
+        }
+    }
+    else {  // skip the overhead of recursion etc for small partitions 
+        for (int start = first_idx + 1; start <= last_idx; start++) {
+            int current = start;
+            while (current > first_idx && data[current] < data[current - 1]) {
+                std::swap(data[current], data[current - 1]);
+                current--;
+            }
+        }
+    }
+
+}
