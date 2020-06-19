@@ -67,10 +67,10 @@ void comb_sort(int data[], int size);
 // PRE: Array contains data in at least the first size locations. 
 // POST: Data is sorted in the first size locations
 // RETURNS: None. 
-// COMMENTS: A fairly simple algorithm that runs in under N^2. Defines a gap, initially about 
-//    half the array, compares w/ item that far away, swap if necessary, repeat until a pass 
-//    with no swaps, reduce gap size, repeat. Collapses to bubble sort but initial swaps have 
-//    moved items close to where they belong. 
+// COMMENTS: A fairly simple algorithm that runs in under N^2. Defines a gap, initially  
+//    4/5 the array size, compares w/ item that far away, swap if necessary, repeat until 
+//    a pass with no swaps, reduce gap size, repeat. Collapses to bubble sort but initial 
+//    swaps have moved items close to where they belong. 
 
 
 void merge_sort(int data[], int size); 
@@ -80,6 +80,14 @@ On the one hand, N lg N performance with a relatively low constant under all con
 On the other, enough extra memory to hold another copy of the data. m_sort is the function
 doing most of the work. 
 */
+
+void heap_sort(int data[], int size); 
+/*
+Press et al.'s recommendation for default sort. N log N behavior in all cases, worst case is 
+only about 20% worse than average case, no additional storage needed. Not as fast as quicksort
+or merge sort, but overall it's very good, and doesn't have the pathlogies of those methods 
+(n^2 worst case for quicksort, memory demands of mergesort). 
+*/
 //===================================== function bodies ============================
 
 
@@ -87,7 +95,7 @@ doing most of the work.
 Stoogesort should not be used in any practical situation. It is literally a textbook
 example (it was thought up as a homework problem for an algorithms text) of an
 inefficient sort. Indeed, it's not even obvious that it works at all. Its running time
-is awful (n^(log 3 / log 1.5) = n^2.7). Visualizations are available online, so you can 
+is awful (n^(lg 3 / lg 1.5) = n^2.7). Visualizations are available online, so you can 
 see just how bad it is:
     If first & last elements are out of order relative to each other, swap them
     Recursively sort first 2/3 of array
@@ -114,7 +122,8 @@ Cocktail shaker sort is a bidirectional bubble sort. One pass is made to move th
 largest item to the far right, then a pass in the other direction moves the smallest
 item to the far left. Repeat until all are sorted. This runs about twice as fast as
 regular bubble sort, as very small items originating on the far right are moved over
-quickly. But it's still N^2.
+quickly. But it's still N^2, and not a very efficient N^2 at that (high constant; other 
+N^2 methods such as insertion or selection will almost always run faster in practice).
 */
 void shaker_sort(int data[], int size) {
     int first = 0, last = size - 1, current;
@@ -218,8 +227,8 @@ the gap is 1 and it's a regular bubble sort, but by then every item is already c
 where it belongs. Performance is substantially better than N^2 (but slower than Shell 
 or any N log N method). This gap size & 'shrink factor' is approximately optimum based on 
 empirical testing.  Time Complexity: O(n log n) for the best case (1 pass at each gap, no
-swaps). O(n^2/2^p) (p is a number of increment) for average case and O(n^2) for the worst 
-case.  Space complexity: O(1).
+swaps, i.e. already sorted). O(n^2/2^p) (p is a number of increment) for average case and 
+O(n^2) for the worst case.  Space complexity: O(1).
 */
 void comb_sort(int data[], int size) {
     bool flips;
@@ -254,14 +263,16 @@ affect big-O performance. But all are at least pretty darn good.) We then insert
 elements that are that far apart; reduce the gap, and go again. As with comb sort, by the
 time it collapses to 'regular' insertion sort, everything is already close to where it
 belongs, and the remaining time needed is linear. Unlike comb sort, Shell does not need to
-deliberately make passes where nothing changes, which are by definition not productive.
-R. Sedgwick, in his book 'Algorithms,' recommends Shell as the default method to use when
-coding your own sort--it's compact, pretty fast, simple enough that it's easy to
-remember & test, not as 'brittle' regarding subtle errors or special cases as some, and not
-sensitive to the initial ordering of the data. Then, if testing determines that the sort
-is a bottleneck, you can go to the trouble of a more complex (but faster) method. (Hint:
-Sorting is hardly ever the bottleneck.) Running time using the gaps presented here runs
-in maximum O(N^(3/2)), and in practice averages about O(N^1.27) for real-world data.
+deliberately make passes where nothing changes, which are by definition not productive, or 
+make multiple passes dealing with adjacent items. R. Sedgwick, in his book 'Algorithms,' 
+recommends Shell as the default method to use when coding your own sort--it's compact, 
+pretty fast, simple enough that it's easy to remember & test, not as 'brittle' regarding 
+subtle errors or special cases as some, and (with appropriate selection of gap size & 
+reduction schedule) not sensitive to the initial ordering of the data. Then, if testing 
+determines that the sort is a bottleneck, you can go to the trouble of a more complex 
+(but faster) method. (Hint: Sorting is hardly ever the bottleneck.) Running time using 
+the gaps presented here runs in maximum O(N^(3/2)), and in practice averages about 
+O(N^1.27) for real-world data.
 */
 void shell_sort(int data[], int size) {
     int first = 0, last = size - 1, start, current, gap;
@@ -425,15 +436,16 @@ void merge_sort(int data[], int size) {
 
 }
 
+
 void m_sort(int data[], int aux[], int first_idx, int last_idx) {
     int left, right, mid, a;
     int p = (last_idx - first_idx + 1); // number of items in this partition
 
     if (p > 5) {
         mid = first_idx + (p / 2);
-        m_sort(data, aux, first_idx, mid);
-        m_sort(data, aux, mid + 1, last_idx);
-        left = first_idx;
+        m_sort(data, aux, first_idx, mid); // sort left half
+        m_sort(data, aux, mid + 1, last_idx); // sort right half 
+        left = first_idx;           // merge sorted halves 
         right = mid + 1;
         a = first_idx;
         while (left <= mid && right <= last_idx) {
@@ -464,4 +476,70 @@ void m_sort(int data[], int aux[], int first_idx, int last_idx) {
         }
     }
 
+}
+
+/*
+We begin by making a max heap, to easily retrieve the largest item in the array. This can
+be done in linear time. We then repeatedly:
+   swap the largest item into the logically-last array slot; decrement logical size of array
+   But we just put a small item into the top; filter it down (at most log N swaps needed) to
+       restore heap property
+   Until all items are in place (logical size of array == 1)
+
+   Heap property: 
+      Children of item at index p are at indices 2p+1 and 2p+2; thus parent(p) at (p-1)/2. 
+      Each item is larger than either of its children (no particular relation between siblings) 
+      If an item is out of place relative to its children, we can swap it with the larger of its 
+        children, and then repeat that process, letting the item percolate downward until the heap 
+        property is restored 
+*/
+
+void heap_sort(int data[], int size) {
+    int last = size - 1, current, start, p, left, right, big;
+    bool again;
+    // heapify our array 
+    for (start = size / 2; start >= 0; start--) {
+        current = start;
+        do {
+            again = false;
+            big = current;
+            left = 2 * current + 1;
+            right = left + 1;
+            if (left < size && data[left] > data[big]) {
+                big = left;
+            }
+            if (right < size && data[right] > data[big]) {
+                big = right;
+            }
+            if (big != current) {
+                std::swap(data[big], data[current]);
+                current = big;
+                again = true;
+            }
+        } while (again);
+    }
+    // Actual sorting happens here, once heap is established. 
+    while (last > 0) {
+        std::swap(data[0], data[last]);
+        last--;
+        // restore heap property 
+        current = 0;
+        do {
+            again = false;
+            big = current;
+            left = 2 * current + 1;
+            right = left + 1;
+            if (left <= last && data[big] < data[left]) {
+                big = left;
+            }
+            if (right <= last && data[big] < data[right]) {
+                big = right;
+            }
+            if (big != current) {
+                std::swap(data[current], data[big]);
+                current = big;
+                again = true;
+            }
+        } while (again);
+    }
 }
