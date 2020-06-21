@@ -425,6 +425,17 @@ void insertion_sort(int data[], int size) {
     }
 }
 
+
+/*
+Merge sort is O(n lg n) under all conditions and isn't sensitive to the ordering of 
+the data (mostly because by default it ignores it). An optimized variant, Timsort, does 
+take advantage of any naturally-occuring runs in the data, which happen fairly often in 
+real-world data, but this one doesn't. So why isn't this used all the time? Because it 
+requires an auxiliary array equal in size to the actual data. The basic algorithm is sound
+and mergesort is often the method of choice for sorting a linked list, where the extra copy 
+of the entire data set can be replaced by lg n pointers to hold sub-lists. Mostly included 
+for completeness. It's nice and fast, but its memory usage argues strongly against it. 
+*/
 void merge_sort(int data[], int size) {
 
     int* auxiliary = new int[size]; 
@@ -475,7 +486,6 @@ void m_sort(int data[], int aux[], int first_idx, int last_idx) {
             }
         }
     }
-
 }
 
 /*
@@ -497,7 +507,21 @@ be done in linear time. We then repeatedly:
 void heap_sort(int data[], int size) {
     int last = size - 1, current, start, p, left, right, big;
     bool again;
-    // heapify our array 
+    /* heapify our array. Yes, this is linear time: 
+       Define one 'step' as: Compare the children of a node, make 1 swap (if needed) 
+          so the largest of the 3 items is on top. 
+       n/2 items have no children and need no steps to be in a heap. 
+       n/4 items have 1 set of children = 1 step 
+       n/8 items need at most 2 steps (if heap property OK w.r.t. children after 1 step, we
+                                       can stop)
+       n/16 items need at most 3 steps 
+       n/32 items need at most 4 steps
+       etc. 
+       1n/4 + 2n/8 + 3n/16 + 4n/32 + 5n/64 + 6n/128 + .... = sum (n* k/(2^(k+1))) 
+        = n * sum(k/(2^(k+1)))
+        The summation converges, approaching 1 in the limit. At most n such operations
+        are needed.
+    */
     for (start = size / 2; start >= 0; start--) {
         current = start;
         do {
@@ -505,10 +529,10 @@ void heap_sort(int data[], int size) {
             big = current;
             left = 2 * current + 1;
             right = left + 1;
-            if (left < size && data[left] > data[big]) {
+            if (left < size && data[big] < data[left]) {
                 big = left;
             }
-            if (right < size && data[right] > data[big]) {
+            if (right < size && data[big] < data[right]) {
                 big = right;
             }
             if (big != current) {
@@ -520,8 +544,8 @@ void heap_sort(int data[], int size) {
     }
     // Actual sorting happens here, once heap is established. 
     while (last > 0) {
-        std::swap(data[0], data[last]);
-        last--;
+        std::swap(data[0], data[last]); // move largest item into position, 
+        last--;                         // make sure it stays there 
         // restore heap property 
         current = 0;
         do {
@@ -529,10 +553,10 @@ void heap_sort(int data[], int size) {
             big = current;
             left = 2 * current + 1;
             right = left + 1;
-            if (left <= last && data[big] < data[left]) {
+            if (left < size && data[big] < data[left]) {
                 big = left;
             }
-            if (right <= last && data[big] < data[right]) {
+            if (right < size && data[big] < data[right]) {
                 big = right;
             }
             if (big != current) {
