@@ -22,7 +22,9 @@ void insertion_sort(int data[], int size);
 // POST: Data is sorted. 
 // RETURNS: None. 
 // COMMENTS: Insertion sort is a basic sorting algorithm, reasonably fast for an N^2 
-//   algorithm. 
+//   algorithm. It works by inserting each item in turn into the already-sorted items 
+//   above it. An obvious improvement is to take the sorted portion & do a binary search 
+//   rather than linear search to find where the next item goes. 
 
 void q_sort(int data[], int lo_idx, int hi_idx);
 // Utility function for quick_sort -- handles partitioning & recursion
@@ -30,7 +32,8 @@ void q_sort(int data[], int lo_idx, int hi_idx);
 
 void quick_sort(int data[], int size);
 // this is what the user calls. 'Mostly' sorts array via partitioning, then 
-// insertion-sorts the k-sorted array that's left (k = 6). 
+// insertion-sorts the k-sorted array that's left (k = 6). Very fast as long as you make
+// the worst case sufficienly unlikely. This implementation probably does that. 
 
 
 void selection_sort(int data[], int size);
@@ -77,8 +80,9 @@ void merge_sort(int data[], int size);
 void m_sort(int data[], int aux[], int first_idx, int last_idx); 
 /*
 On the one hand, N lg N performance with a relatively low constant under all conditions. 
-On the other, enough extra memory to hold another copy of the data. m_sort is the function
-doing most of the work. 
+On the other, requires extra memory to hold another copy of the data. m_sort is the function
+doing most of the work; the user calls merge_sort. For data sets larger than several thousand
+items, a method requiring less profligate memory usage should probably be considered. 
 */
 
 void heap_sort(int data[], int size); 
@@ -88,15 +92,27 @@ only about 20% worse than average case, no additional storage needed. Not as fas
 or merge sort, but overall it's very good, and doesn't have the pathlogies of those methods 
 (n^2 worst case for quicksort, memory demands of mergesort). 
 */
+
+void circle_sort(int data[], int size);
+bool c_sort(int data[], int lo_idx, int hi_idx);
+/* 
+Another recursive algorithm. Compare first & last item, second to second-last, etc.; when 
+compared indices meet, recurse on each half separately, until the halves are only 1 item. One
+iteration of this takes n lg n time; lg n such calls are needed to fully sort everything, so 
+total running time is O(n log n log n) worst case. Best case is O(n lg n) [already-sorted or 
+inversely-ordered data, but even 1 item out of place will prevent best-case behavior]. Good 
+performance from very simple code. The originator of the algorithm states a significant 
+speedup can be obtained by only doing 0.5 lg n such calls, then switching to binary 
+insertion sort. I have not tested this. 
+*/
 //===================================== function bodies ============================
 
 
 /*
 Stoogesort should not be used in any practical situation. It is literally a textbook
 example (it was thought up as a homework problem for an algorithms text) of an
-inefficient sort. Indeed, it's not even obvious that it works at all. Its running time
-is awful (n^(lg 3 / lg 1.5) = n^2.7). Visualizations are available online, so you can 
-see just how bad it is:
+inefficient sort. Its running time is awful (n^(lg 3 / lg 1.5) = n^2.7). Visualizations 
+are available online, so you can see just how bad it is:
     If first & last elements are out of order relative to each other, swap them
     Recursively sort first 2/3 of array
     Recursively sort last 2/3 of array
@@ -244,15 +260,11 @@ void comb_sort(int data[], int size) {
             }
         } while (flips);
         gap = int(gap / 1.3);
-        // it turns out that there are 3 possible sequences of gap sizes that reduce to 1; 
-        // the one going through 11 is the only one that gets rid of all the turtles 
-        // (small items near the 'big' end of the array) before the gap becomes 1. 
-        // So speaks the oracle of Wikipedia; I haven't tracked down an original source for 
-        // that, it might be an urban legend. But the more we do with larger stepsizes, the 
-        // better. 
-        if (gap == 9 || gap == 10) {
-            gap = 11;
-        }
+        // Some implementations make sure the gap goes through 11 on its way down to 1; this 
+        // is useful mostly if only 1 pass is being made at each gap, as that ensures that all 
+        // the turtles (small items near the big end of the array) are dealt with before the 
+        // gap becomes 1 (or so speaks the Oracle of Wikipedia). Since we're making multiple 
+        // passes at each gap, turtles are already dealt with.
     }
 }
 
@@ -276,12 +288,27 @@ O(N^1.27) for real-world data.
 */
 void shell_sort(int data[], int size) {
     int first = 0, last = size - 1, start, current, gap;
-    // Sedgwick recommends this gap sequence 
-    start = 1;
-    while (start < size) {
-        start = (start * 3) + 1; // 1, 4, 13, 40, 121, 364, 1093.... 
+
+    /* 
+    Oleyami (2008, J. Applied Sciences Research) found this initial pass improved 
+    performance significantly. 
+    */
+    while (first < last) {
+        if (data[last] < data[first]) {
+            std::swap(data[last], data[first]);
+        }
+        first++;
+        last--;
     }
-    gap = start / 3;
+    // now on with the previously-scheduled show.... 
+    first = 0; 
+    last = size - 1;
+    // Sedgwick recommends this gap sequence 
+    gap = 1;
+    while (gap < size) {
+        gap = (gap * 3) + 1; // 1, 4, 13, 40, 121, 364, 1093.... 
+    }
+    gap = gap / 3;
     while (gap > 0) {
         for (start = gap; start <= last; start++) {
             current = start;
@@ -434,7 +461,17 @@ real-world data, but this one doesn't. So why isn't this used all the time? Beca
 requires an auxiliary array equal in size to the actual data. The basic algorithm is sound
 and mergesort is often the method of choice for sorting a linked list, where the extra copy 
 of the entire data set can be replaced by lg n pointers to hold sub-lists. Mostly included 
-for completeness. It's nice and fast, but its memory usage argues strongly against it. 
+for completeness. It's nice and fast, but its memory usage argues against it. (If
+the data is large enough, then allocating enough room for the copy kicks you into virtual 
+memory and wall-clock time performance plummets. For small to moderately-sized data sets, 
+it's fine.) 
+
+The standard implementation allocates just enough auxiliary memory for that sub-section of
+the data, releasing it at function return. This minimizes the amount of auxiliary memory in 
+use at any moment, but you still need a complete copy before you're done, and you spend a lot 
+of time allocating and deallocating the same memory. This implementation creates one auxiliary 
+array at the beginning & uses it throughout. This gives notably better time performance at the 
+cost of having more memory allocated throughout the process. 
 */
 void merge_sort(int data[], int size) {
 
@@ -566,4 +603,46 @@ void heap_sort(int data[], int size) {
             }
         } while (again);
     }
+}
+
+
+void circle_sort(int data[], int size) {
+    // Call utility function repeatedly until it can't find any more fixes 
+    // A total of lg n calls will be needed for random data. 
+    bool swaps; 
+    do {
+        swaps = c_sort(data, 0, size - 1);
+    } while (swaps); 
+}
+
+bool c_sort(int data[], int lo_idx, int hi_idx) {
+    bool swaps, left, right;
+    int first = lo_idx, last = hi_idx, mid;
+
+    if (hi_idx <= lo_idx) {   // stopping case. 0 or 1 item, nothing to do
+        return false;         // so no swaps
+    }
+    swaps = left = right = false;
+    while (first < last) {
+        if (data[last] < data[first]) {
+            std::swap(data[first], data[last]);
+            swaps = true;
+        }
+        first++;
+        last--;
+    }
+    if (first == last) {
+        // special case of odd size array; center item never gets compared to anything else 
+        // and so never moves; so let's bump it out of its comfort zone unless 
+        // it already seems to be OK. 
+        if (data[first + 1] < data[first]) {
+            std::swap(data[first], data[first + 1]);
+            swaps = true;
+        }
+    }
+    mid = (hi_idx - lo_idx) / 2;
+    left = c_sort(data, lo_idx, lo_idx + mid);
+    right = c_sort(data, lo_idx + mid + 1, hi_idx);
+
+    return (swaps || left || right);
 }

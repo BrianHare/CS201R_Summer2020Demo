@@ -1,14 +1,21 @@
 #include <iostream> 
+#include <fstream>
 #include <ctime>
+#include <vector>
 
-const int DATASIZE = 100;
-
-
+const int DATASIZE = 200;
 
 
 int main() {
     bool oops = false; 
     int* data = new int[DATASIZE]; 
+    std::ifstream fin; 
+
+    // fin.open("filename.txt"); 
+
+
+
+
     std::cout << "Hello world!" << std::endl;
 
     srand(time(NULL));
@@ -16,8 +23,9 @@ int main() {
         data[k] = std::rand();
     }
     
-    // call to sort method goes here 
+    // call to sorting method goes here 
 
+    // verify sort 
     for (int k = 1; k < DATASIZE; k++) {
         if (data[k] < data[k - 1]) {
             oops = true; 
@@ -37,4 +45,5 @@ int main() {
 
     return EXIT_SUCCESS;
 }
+
 
